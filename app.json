@@ -23,7 +23,13 @@
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#FFFFFF"
-      }
+      },
+      "config": {
+        "googleMaps": {
+        "apiKey": "AIzaSyDu5sG7_BAf3o6HG9Cwx19BcgFV7w-d6W8"
+        }
+      },
+      "package": "com.victorsoltan.network"
     },
     "web": {
       "favicon": "./assets/favicon.png"
