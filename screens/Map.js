@@ -1,11 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { StyleSheet, Dimensions, View, Text, ScrollView, TouchableOpacity, TextInput, Image, TouchableWithoutFeedback, Keyboard } from 'react-native';
+import { StyleSheet, Dimensions, View, Text, TouchableOpacity, TextInput, Image, TouchableWithoutFeedback, Keyboard } from 'react-native';
 import * as Location from 'expo-location';
-import MapView, { Marker, Callout, AnimatedRegion } from 'react-native-maps';
+import MapView, { Marker, Callout } from 'react-native-maps';
 import axios from 'axios'
 import { GooglePlacesAutocomplete } from 'react-native-google-places-autocomplete';
-
-import Position from '../assets/rec.png'
 
 import Filter from '../assets/menu/filter.png'
 import Signature from '../assets/menu/signature.png'
@@ -46,6 +44,35 @@ import Ι24 from '../assets/signs/0024.png'
 import Ι25 from '../assets/signs/0025.png'
 
 export default function Map() {
+  const [isKeyboardVisible, setKeyboardVisible] = useState(false);
+  let [region, setRegion] = useState({
+    "latitude": 10.1,
+    "longitude":  50.1,
+    "latitudeDelta": 300,
+    "longitudeDelta": 300})
+  
+  let [updateLocation, setUpdateLocation] = useState(false)
+
+  useEffect(() => {
+     const keyboardDidShowListener = Keyboard.addListener(
+       'keyboardDidShow',
+       () => {
+          setKeyboardVisible(true);
+       }
+     );
+     const keyboardDidHideListener = Keyboard.addListener(
+       'keyboardDidHide',
+       () => {
+         setKeyboardVisible(false);
+       }
+     );
+ 
+     return () => {
+       keyboardDidHideListener.remove();
+       keyboardDidShowListener.remove();
+     };
+   }, []);
+
   const [location, setLocation] = useState(null);
   const [errorMsg, setErrorMsg] = useState(null);
 
@@ -54,9 +81,15 @@ export default function Map() {
   let [inputValue, setInputValue] = useState('');
   let [global, setGlobal] = useState(false);
 
-  let [menuItem, setMenuItem] = useState(null);
-
   function Global(){
+    // if(location){
+    //   setRegion({
+    //     latitude: location.coords.latitude,
+    //     longitude: location.coords.longitude,
+    //     latitudeDelta: 60,
+    //     longitudeDelta: 60
+    //   })
+    // }
     setGlobal(!global)
     setToggleMenu(false)
     setTextInput(false)
@@ -84,11 +117,31 @@ export default function Map() {
   let filtersIcons = [emoSigns, ateSigns, pathSigns, forbiddenSigns]
   
   const filters = [All, Attention, LocationIcon, Forbidden]
+
   let [selectedFilter, setFilter] = useState(filtersIcons[0])
 
   let [signsIcon, setSignsIcon] = useState(selectedFilter[0]);
+  
+  let [markers, setMarkers] = useState([])
 
-  let [region, setRegion] = useState(null)
+  useEffect(() => {
+    (async () => {
+      let info = await axios.get('http://208.69.117.77:8000/api/icon_view/')
+      let newArr = [...markers];
+      for(let x=0; x<info.data.length; x++){
+        newArr.push({
+          latitude: Number(info.data[x].latitude), 
+          longitude: Number(info.data[x].longitude), 
+          icon: allIcons[Number(info.data[x].icon)-12],
+          text: info.data[x].text})
+        setMarkers(newArr);
+      }
+    })();
+  }, []);
+
+  function sleep(ms) {
+    return new Promise(resolve => setTimeout(resolve, ms));
+  }
 
   useEffect(() => {
     (async () => {
@@ -97,67 +150,73 @@ export default function Map() {
       if (status !== 'granted') {
         setErrorMsg('Permission to access location was denied');
         return;
-      }
-
-      let location = await Location.getCurrentPositionAsync({});
-      setLocation(location)}
+      }}
+      await sleep(500);
 
       await Location.watchPositionAsync(
         {accuracy:Location.Accuracy.High},
         (loc) => {setLocation(loc)});
-        console.log('s')
     })();
-  }, [region]);
+  }, [updateLocation]);
 
-  
-  let [markers, setMarkers] = useState([])
-  let [markersLength, setMarkersLength] = useState(null)
+  // useEffect(() => {
+  //   (async () => {
+  //     await sleep(1200);
+
+  //     if(location&&markers.length!==0){
+  //       for(let x=0; x<markers.length; x++){
+  //         if(location.coords.latitude-markers[x].latitude<0.0000000001&&location.coords.longitude-markers[x].longitude<0.0000000001){
+  //           console.log(markers[x].latitude)
+  //         }
+  //       }
+  //     }
+  //   })();
+  // }, [updateLocation]);
 
   function addMarker(e) {
     let newArr = [...markers];
     newArr.push({
-      'latitude': e.nativeEvent.coordinate.latitude, 
-      'longitude': e.nativeEvent.coordinate.longitude, 
-      'icon': signsIcon,
-      'text': inputValue})
+      latitude: e.nativeEvent.coordinate.latitude, 
+      longitude: e.nativeEvent.coordinate.longitude, 
+      icon: signsIcon,
+      text: inputValue})
     setMarkers(newArr);
     let textForPost = inputValue 
     if(!inputValue){
       textForPost = 'WhiteHorseInMyNose'
     }
-    axios.post(`http://5.187.6.228:49280/api/createIcon/${signsIcon}/${textForPost}/${e.nativeEvent.coordinate.latitude}/${e.nativeEvent.coordinate.longitude}/`)
+    axios.post(`http://208.69.117.77:8000/api/createIcon/${signsIcon}/${textForPost}/${e.nativeEvent.coordinate.latitude}/${e.nativeEvent.coordinate.longitude}/`)
   }
-    useEffect(() => {
-      (async () => {
-        let info = await axios.get('http://5.187.6.228:49280/api/icon_view/')
-        let newArr = [...markers];
-        for(let x=0; x<info.data.length; x++){
-          newArr.push({
-            'latitude': Number(info.data[x].latitude), 
-            'longitude': Number(info.data[x].longitude), 
-            'icon': allIcons[Number(info.data[x].icon)-12],
-            'text': info.data[x].text})
-          setMarkers(newArr);
-        }
-      })();
-  }, []);
+
   return (
     <TouchableWithoutFeedback onPress={Keyboard.dismiss} accessible={false}>
-      <View style={[styles.container, global||textInput ? {marginTop: '8%'} : null]}>
+      <View style={styles.container}>
         {global ?
-          <View style={{width: '100%', zIndex: 9999}}>
-           <GooglePlacesAutocomplete
-           placeholder='Search'
-           onPress={(data, details = null) => {
-             // 'details' is provided when fetchDetails = true
-             console.log(data, details);
-           }}
-           query={{
-             key: 'AIzaSyDu5sG7_BAf3o6HG9Cwx19BcgFV7w-d6W8',
-             language: 'en',
-           }}
-          />
-        </View>
+            <GooglePlacesAutocomplete
+              placeholder='Search'
+              minLength={2} // minimum length of text to search
+              // autoFocus={false}
+              returnKeyType={'search'} // Can be left out for default return key https://facebook.github.io/react-native/docs/textinput.html#returnkeytype
+              keyboardAppearance={'light'} // Can be left out for default keyboardAppearance https://facebook.github.io/react-native/docs/textinput.html#keyboardappearance
+              fetchDetails={true}
+              listViewDisplayed={false}              // renderDescription={row => row.description} //
+              onPress={(data, details = null) => {
+               // 'details' is provided when fetchDetails = true
+                console.log(data, details);
+                setRegion({
+                  latitude: details.geometry.location.lat,
+                  longitude:  details.geometry.location.lng
+                })
+              }}
+              query={{
+                key: 'AIzaSyCXRQ_pQ2CNh7v-DqjyOsrmaTUGYPF1uTs',
+                language: 'en',
+              }}
+              styles={{
+                container: { flex: 0, position: "absolute", top: '4%', width: "100%", zIndex: 9999, alignSelf: 'center' },
+                listView: { backgroundColor: "white" }
+              }}
+            />
         : textInput ? 
           <TextInput 
             style={styles.input}
@@ -167,14 +226,14 @@ export default function Map() {
             maxLength={80}
           />
         :null}
-        <View style={[styles.mapContent, global||textInput ? {marginTop: '8%'} : null]}>
-          <ScrollView style={{position: 'absolute', top: '5%', width: '20%', zIndex: 9999}}>
+        <View style={styles.mapContent}>
+          <View style={{top: '10%', width: '20%', zIndex: 1000}}>
             {menu.map((item, index) => (
-              <TouchableOpacity key={index} style={[styles.menuIcon, item.value ? {backgroundColor: 'rgba(20,32,32, 1)'} : null, ]} onPress={item.func ? () => item.func(!item.value) : null}>
-                <Image source={item.icon} style={{width: 28, height: 28}} tintColor="#a2f6f7"/>
+              <TouchableOpacity key={index} style={[styles.menuIcon, item.value ? {backgroundColor: 'rgba(0,17,30, 1)'} : null, ]} onPress={item.func ? () => item.func(!item.value) : null}>
+                <Image source={item.icon} style={{width: 24, height: 24, opacity: 0.8}} tintColor="#a2f6f7"/>
               </TouchableOpacity>
             ))}
-          </ScrollView>
+          </View>
             <>
               {toggleMenu ?
                 <View style={styles.signsContainer}>
@@ -195,34 +254,40 @@ export default function Map() {
                 </View>
               : null}  
               <MapView
-                onStartShouldSetResponder={!textInput ? () => true : null}
-                style={{position: 'absolute', width: '100%', height: windowHeight}}
+                onStartShouldSetResponder={!isKeyboardVisible ? () => true : null}
+                style={{position: 'absolute', width: '100%', height: '100%'}}
                 onLongPress={!global&&location ? e => addMarker(e) : null}
                 mapType = {'hybrid'}
+                userInterfaceStyle={'dark'}
+                showsMyLocationButton={false}
                 zoomEnabled={global} scrollEnabled={global}
                 showsUserLocation={!global}
-                moveOnMarkerPress={false}
+                moveOnMarkerPress={!global}
                 followsUserLocation={!global}
-                onUserLocationChange={!global ? () => (setRegion(!region), console.log('update')): null}
-                region={location? { 
+                onUserLocationChange={!global ? () => (setUpdateLocation(!updateLocation)): null}
+                region={location&&!global? { 
                   latitude: location.coords.latitude,
                   longitude: location.coords.longitude,
                   latitudeDelta: 0.002,
-                  longitudeDelta: 0.001421}: null}    
+                  longitudeDelta: 0.001421} : null}    
               >
-                 {markers.map((item, index) => (
-                  <Marker key={index}
-                    coordinate={{latitude: item.latitude, longitude: item.longitude }} >
-                    <Image source={item.icon} style={styles.markerIcon} />
-                    {item.text?
-                      <Callout><Text style={{width: '100%', height: '100%'}}>{item.text}</Text></Callout>
-                    : null}
-                    </Marker>
+                {markers.map((item, index) => (
+                  <Marker style={styles.marker}
+                    key={index} coordinate={{latitude: item.latitude, longitude: item.longitude }} >
+                      {item.text?
+                        <View style={styles.textMarker} />
+                      : null}
+                      <View style={styles.markerIconBack} />
+                      <Image source={item.icon} style={styles.markerIcon} />
+                      {item.text?
+                          <Callout style={styles.callout}><Text>{item.text}</Text></Callout>
+                      : null}
+                  </Marker>
                 ))}
               </MapView>
             </>
         </View>
-      </View>
+      </View> 
     </TouchableWithoutFeedback>
   );
 }
@@ -241,20 +306,15 @@ const styles = StyleSheet.create({
     height: '96%'
   },
   menuIcon: {
-    margin: 10,
-    backgroundColor: 'rgba(2,8,13, 0.8)',
+    margin: 8,
+    backgroundColor: 'rgba(0,17,38, 0.8)',
     alignItems: 'center',
     justifyContent: 'center',
     width: 45,
-    paddingVertical: 6,
-    borderColor: '#0290b7',
-    borderWidth: 1.4,
-    borderRadius: 2
+    paddingVertical: 11
   },
   map: {
     width: '100%',
-    height: windowHeight,
-    // backgroundColor: 'blue',
   },
   filter: {
     alignSelf: 'flex-start',
@@ -278,18 +338,44 @@ const styles = StyleSheet.create({
     width: '90%',
     alignItems: 'center'
   },
+  marker: {
+    alignItems: 'center', 
+    justifyContent: 'center', 
+    height: 30
+  },
+  textMarker: {
+    position: 'absolute', 
+    top: 0, 
+    width: 6, 
+    height: 6, 
+    backgroundColor: 'rgba(162, 246, 247, 0.8)', 
+    borderRadius: 4, 
+    zIndex: 9999
+  },
+  markerIconBack: {
+    position: 'absolute',
+    backgroundColor: 'rgba(2, 140, 180, 0.3)', 
+    borderRadius: 60,
+    width: 22, 
+    height: 22,
+  },
   markerIcon: {
     width: 22, 
     height: 22,
   },
+  callout: {
+    flex: -1, 
+    position: 'absolute', 
+    width: 160
+  },
   input: {
     position: 'absolute',
-    // top: '5%', 
+    top: '4%', 
+    paddingLeft: '3%',
+    borderRadius: 6,
     width: '100%', 
-    height: 36,
+    height: 44,
     backgroundColor: 'white', 
-    borderBottomWidth: 2, 
-    borderColor: 'rgba(56,123,172, 1)',
     zIndex: 9999,
   }
 });
