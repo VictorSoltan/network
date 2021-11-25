@@ -1,7 +1,5 @@
-import { StatusBar } from 'expo-status-bar';
 import React, {useState} from 'react';
 import Navigator from './routes/homeStack'
-import { StyleSheet} from 'react-native';
 // import * as Font from 'expo-font'
 // import AppLoading from 'expo-app-loading';
 
@@ -27,12 +25,3 @@ export default function App() {
     // />
   // }
 }
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#fff',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-});
