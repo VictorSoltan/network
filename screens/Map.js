@@ -15,9 +15,48 @@ import Attention from '../assets/filter/attention.png'
 import LocationIcon from '../assets/filter/location.png'
 import Forbidden from '../assets/filter/forbidden.png'
 
-export default function Map({
-  markers, setMarkers, emoSigns, ateSigns,pathSigns, forbiddenSigns}) {
+import Ι0 from '../assets/signs/0000.webp'
+import Ι1 from '../assets/signs/0001.webp'
+import Ι2 from '../assets/signs/0002.webp'
+import Ι3 from '../assets/signs/0003.webp'
+import Ι4 from '../assets/signs/0004.webp'
+import Ι5 from '../assets/signs/0005.webp'
+import Ι6 from '../assets/signs/0006.webp'
+import Ι7 from '../assets/signs/0007.webp'
+import Ι8 from '../assets/signs/0008.webp'
+import Ι9 from '../assets/signs/0009.webp'
+import Ι10 from '../assets/signs/0010.webp'
+import Ι11 from '../assets/signs/0011.webp'
+import Ι12 from '../assets/signs/0012.webp'
+import Ι13 from '../assets/signs/0013.webp'
+import Ι14 from '../assets/signs/0014.webp'
+import Ι15 from '../assets/signs/0015.webp'
+import Ι16 from '../assets/signs/0016.webp'
+import Ι17 from '../assets/signs/0017.webp'
+import Ι18 from '../assets/signs/0018.webp'
+import Ι19 from '../assets/signs/0019.webp'
+import Ι20 from '../assets/signs/0020.webp'
+import Ι21 from '../assets/signs/0021.webp'
+import Ι22 from '../assets/signs/0022.webp'
+import Ι23 from '../assets/signs/0023.webp'
+import Ι24 from '../assets/signs/0024.webp'
+import Ι25 from '../assets/signs/0025.webp'
+
+
+export default function Map() {
   
+  let [markers, setMarkers] = useState([])
+  
+  const allIcons = [Ι0, Ι1, Ι2, Ι3, Ι4, Ι5, Ι6, Ι7, Ι8, 
+    Ι9, Ι10, Ι11, Ι12, Ι13, Ι14, Ι15, Ι16, Ι17, Ι18, Ι19, Ι20, Ι21, Ι22, Ι23, Ι24, Ι25]
+
+  const
+    emoSigns = [Ι0, Ι1, Ι2, Ι3, Ι4, Ι5, Ι6, Ι7, Ι8],
+    ateSigns = [Ι9, Ι10, Ι11, Ι12, Ι13],
+    pathSigns = [Ι14, Ι15, Ι16, Ι17, Ι18, Ι19, Ι20, Ι21],
+    forbiddenSigns = [Ι22, Ι23, Ι24, Ι25]
+
+
   const [isKeyboardVisible, setKeyboardVisible] = useState(false);
   // let [region, setRegion] = useState({
   //   "latitude": 10.1,
@@ -43,13 +82,14 @@ export default function Map({
        keyboardDidHideListener.remove();
        keyboardDidShowListener.remove();
      };
-   }, []);
+  }, []);
 
-  let [toggleMenu, setToggleMenu] = useState(false);
-  let [textInput, setTextInput] = useState(false);
-  let [inputValue, setInputValue] = useState('');
-  let [global, setGlobal] = useState(false);
-  let [notifiocation, setNotifiocation] = useState(false)
+
+  let [toggleMenu, setToggleMenu] = useState(false),
+    [textInput, setTextInput] = useState(false),
+    [inputValue, setInputValue] = useState(''),
+    [global, setGlobal] = useState(false),
+    [notifiocation, setNotifiocation] = useState(false)
 
   function Global(){
     // if(location){
@@ -100,6 +140,12 @@ export default function Map({
           latitude: e.nativeEvent.coordinate.latitude, 
           longitude: e.nativeEvent.coordinate.longitude, 
           icon: signsIcon,
+          like: 0,
+          dislike: 0,
+          likeAdded: false,
+          dislikeAdded: false,
+          checked: false,
+          value: true,
           text: inputValue})
         setMarkers(markers);
         let textForPost = inputValue 
@@ -112,6 +158,32 @@ export default function Map({
         setTimeout(() => setNotifiocation(false), 1000)
       }
     }    
+  }
+  function setLike(e, indx){   
+    markers = [...markers]
+    if(e==='like'){
+      if(!markers[indx].likeAdded){
+        markers[indx].like = markers[indx].like+1 
+      }
+      if(markers[indx].dislikeAdded){
+        markers[indx].dislike = markers[indx].dislike-1 
+      }
+      markers[indx].likeAdded = true 
+      markers[indx].dislikeAdded = false 
+
+    }else{
+      if(markers[indx].likeAdded){
+        markers[indx].like = markers[indx].like-1 
+      }
+      if(!markers[indx].dislikeAdded){
+        markers[indx].dislike = markers[indx].dislike+1 
+      }
+      markers[indx].dislikeAdded = true 
+      markers[indx].likeAdded = false 
+
+    }
+    setMarkers(markers);
+    axios.post(`http://208.69.117.77:8000/api/like/${markers[indx].latitude}/${markers[indx].longitude}/${markers[indx].date}/${e}/Victor/`)
   }
 
   return (
@@ -153,7 +225,7 @@ export default function Map({
                   </View>
                 </View>
               : null}  
-              <MapContainer  isKeyboardVisible={isKeyboardVisible} addMarker={addMarker} global={global} markers={markers} setMarkers={setMarkers} />
+              <MapContainer  isKeyboardVisible={isKeyboardVisible} addMarker={addMarker} global={global} markers={markers} setMarkers={setMarkers} allIcons={allIcons} setLike={setLike} />
             </>
         </View>
         {notifiocation ?

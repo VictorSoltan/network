@@ -29,6 +29,8 @@
         "apiKey": "AIzaSyDu5sG7_BAf3o6HG9Cwx19BcgFV7w-d6W8"
         }
       },
+      "googleServicesFile": "./google-services.json",
+      "useNextNotificationsApi": true,
       "package": "com.victorsoltan.network"
     },
     "web": {

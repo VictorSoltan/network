@@ -3,7 +3,7 @@ import { createStackNavigator } from "@react-navigation/stack";
 import { NavigationContainer } from "@react-navigation/native";
 
 
-import LoadMarkers from "../screens/LoadMarkers";
+import Map from "../screens/Map";
 // import Registration from "../screens/Registration";
 // import Login from "../screens/Login";
 
@@ -20,9 +20,9 @@ export default function Navigate(){
                 options={{title: 'Login'}}
             />                   */}
             <Stack.Screen 
-                name="LoadMarkers"
-                component={LoadMarkers}
-                options={{title: 'LoadMarkers'}}
+                name="Map"
+                component={Map}
+                options={{title: 'Map'}}
             />      
                 
         </Stack.Navigator>

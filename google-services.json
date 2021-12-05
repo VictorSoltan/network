@@ -1,0 +1,39 @@
+{
+  "project_info": {
+    "project_number": "153465814116",
+    "project_id": "eba4-234510",
+    "storage_bucket": "eba4-234510.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:153465814116:android:1def1abc534c205527b371",
+        "android_client_info": {
+          "package_name": "com.victorsoltan.network"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "153465814116-9i7o3c5ds7s79f6t53ojlv0emced2p70.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAskBQDBV2ZIHkFoRSaKxXvpis2zIGHBXU"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "153465814116-9i7o3c5ds7s79f6t53ojlv0emced2p70.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
