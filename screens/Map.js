@@ -1,19 +1,23 @@
-import React, { useState, useEffect } from 'react';
-import { StyleSheet, Dimensions, View, Text, TouchableOpacity, TextInput, Image, TouchableWithoutFeedback, Keyboard } from 'react-native';
+import React, { useState, useRef, useEffect } from 'react';
+import { StyleSheet, View, TouchableOpacity, TextInput, Image, TouchableWithoutFeedback, Keyboard } from 'react-native';
 import MapContainer  from './MapContainer';
-import axios from 'axios'
+// import PermissionsButton from './PermissionsButton'
+
 // import { GooglePlacesAutocomplete } from 'react-native-google-places-autocomplete';
 
-import Filter from '../assets/menu/filter.png'
+import Filter from '../assets/menu/all-inclusive.png'
 import Signature from '../assets/menu/signature.png'
 import Lamp from '../assets/menu/lamp.png'
-import Settings from '../assets/menu/settings.png'
+import User from '../assets/menu/user.png'
 import Earth from '../assets/menu/earth-globe.png'
+
+// import Wallet from '../assets/menu/digital-wallet.png'
 
 import All from '../assets/filter/all.png'
 import Attention from '../assets/filter/attention.png'
 import LocationIcon from '../assets/filter/location.png'
 import Forbidden from '../assets/filter/forbidden.png'
+import Actions from '../assets/filter/actions.png'
 
 import Ι0 from '../assets/signs/0000.webp'
 import Ι1 from '../assets/signs/0001.webp'
@@ -41,28 +45,24 @@ import Ι22 from '../assets/signs/0022.webp'
 import Ι23 from '../assets/signs/0023.webp'
 import Ι24 from '../assets/signs/0024.webp'
 import Ι25 from '../assets/signs/0025.webp'
+import Ι26 from '../assets/signs/chat.webp'
+import Ι27 from '../assets/signs/coin.webp'
 
 
-export default function Map() {
+export default function Map({ navigation }){
   
-  let [markers, setMarkers] = useState([])
+  // const allIcons = [Ι0, Ι1, Ι2, Ι3, Ι4, Ι5, Ι6, Ι7, Ι8, 
+  //   Ι9, Ι10, Ι11, Ι12, Ι13, Ι14, Ι15, Ι16, Ι17, Ι18, Ι19, Ι20, Ι21, Ι22, Ι23, Ι24, Ι25]
+
+  const icons = React.useRef({
+    0: [Ι0, Ι1, Ι2, Ι3, Ι4, Ι5, Ι6, Ι7, Ι8],
+    1: [Ι9, Ι10, Ι11, Ι12, Ι13],
+    2: [Ι14, Ι15, Ι16, Ι17, Ι18, Ι19, Ι20, Ι21],
+    3: [Ι22, Ι23, Ι24, Ι25],
+    4: [Ι26, Ι27]
+  })
   
-  const allIcons = [Ι0, Ι1, Ι2, Ι3, Ι4, Ι5, Ι6, Ι7, Ι8, 
-    Ι9, Ι10, Ι11, Ι12, Ι13, Ι14, Ι15, Ι16, Ι17, Ι18, Ι19, Ι20, Ι21, Ι22, Ι23, Ι24, Ι25]
-
-  const
-    emoSigns = [Ι0, Ι1, Ι2, Ι3, Ι4, Ι5, Ι6, Ι7, Ι8],
-    ateSigns = [Ι9, Ι10, Ι11, Ι12, Ι13],
-    pathSigns = [Ι14, Ι15, Ι16, Ι17, Ι18, Ι19, Ι20, Ι21],
-    forbiddenSigns = [Ι22, Ι23, Ι24, Ι25]
-
-
   const [isKeyboardVisible, setKeyboardVisible] = useState(false);
-  // let [region, setRegion] = useState({
-  //   "latitude": 10.1,
-  //   "longitude":  50.1,
-  //   "latitudeDelta": 300,
-  //   "longitudeDelta": 300})
   
   useEffect(() => {
      const keyboardDidShowListener = Keyboard.addListener(
@@ -89,17 +89,10 @@ export default function Map() {
     [textInput, setTextInput] = useState(false),
     [inputValue, setInputValue] = useState(''),
     [global, setGlobal] = useState(false),
-    [notifiocation, setNotifiocation] = useState(false)
+    [coins, setCoins] = useState(false),
+    me = useRef(null)
 
   function Global(){
-    // if(location){
-    //   setRegion({
-    //     latitude: location.coords.latitude,
-    //     longitude: location.coords.longitude,
-    //     latitudeDelta: 60,
-    //     longitudeDelta: 60
-    //   })
-    // }
     setGlobal(!global)
     setToggleMenu(false)
     setTextInput(false)
@@ -110,81 +103,29 @@ export default function Map() {
     setGlobal(false)
   }
 
+  function seeUserInfo(){
+    console.log(me.current)
+    navigation.navigate('UserInfo', {nickname: me.current, icons: icons, onlySee: true})
+  }
+  
+  function getCoins(){
+    setCoins(false)
+  }
+
   const menu = [
-    {icon: Filter, func: null, value: null}, 
+    {icon: Filter, func: getCoins, value: null}, 
     {icon: Signature, func: TextSelect, value: textInput}, 
     {icon: Lamp, func: setToggleMenu, value: toggleMenu}, 
     {icon: Earth, func: Global, value: global}, 
-    {icon: Settings, func: null, value: null}, 
+    {icon: User, func: seeUserInfo, value: null}, 
     // {icon: Angry, func: null, value: null}  
   ]
 
-  const filtersIcons = [emoSigns, ateSigns, pathSigns, forbiddenSigns]
-  const filters = [All, Attention, LocationIcon, Forbidden]
+  // const filtersIcons = [emoSigns, ateSigns, pathSigns, forbiddenSigns]
+  const filters = [All, Attention, LocationIcon, Forbidden, Actions]
 
-  let [selectedFilter, setFilter] = useState(filtersIcons[0])
-  let [signsIcon, setSignsIcon] = useState(selectedFilter[0]);
-  
-  function addMarker(location, e) {
-    if(location&&markers.length!==0){
-      let bool = true
-      for(let x=0; x<markers.length; x++){
-        if(Math.abs(e.nativeEvent.coordinate.latitude-markers[x].latitude)   <0.00008
-          &&Math.abs(e.nativeEvent.coordinate.longitude-markers[x].longitude)<0.00006){
-          bool=false
-        }
-      }  
-      if(bool){
-        markers = [...markers]
-        markers.push({
-          latitude: e.nativeEvent.coordinate.latitude, 
-          longitude: e.nativeEvent.coordinate.longitude, 
-          icon: signsIcon,
-          like: 0,
-          dislike: 0,
-          likeAdded: false,
-          dislikeAdded: false,
-          checked: false,
-          value: true,
-          text: inputValue})
-        setMarkers(markers);
-        let textForPost = inputValue 
-        if(!inputValue){
-          textForPost = 'WhiteHorseInMyNose'
-        }
-        axios.post(`http://208.69.117.77:8000/api/createIcon/${signsIcon}/${textForPost}/${e.nativeEvent.coordinate.latitude}/${e.nativeEvent.coordinate.longitude}/`)
-      }else{
-        setNotifiocation(true)
-        setTimeout(() => setNotifiocation(false), 1000)
-      }
-    }    
-  }
-  function setLike(e, indx){   
-    markers = [...markers]
-    if(e==='like'){
-      if(!markers[indx].likeAdded){
-        markers[indx].like = markers[indx].like+1 
-      }
-      if(markers[indx].dislikeAdded){
-        markers[indx].dislike = markers[indx].dislike-1 
-      }
-      markers[indx].likeAdded = true 
-      markers[indx].dislikeAdded = false 
-
-    }else{
-      if(markers[indx].likeAdded){
-        markers[indx].like = markers[indx].like-1 
-      }
-      if(!markers[indx].dislikeAdded){
-        markers[indx].dislike = markers[indx].dislike+1 
-      }
-      markers[indx].dislikeAdded = true 
-      markers[indx].likeAdded = false 
-
-    }
-    setMarkers(markers);
-    axios.post(`http://208.69.117.77:8000/api/like/${markers[indx].latitude}/${markers[indx].longitude}/${markers[indx].date}/${e}/Victor/`)
-  }
+  let [selectedFilter, setFilter] = useState(0)
+  let [signsIcon, setSignsIcon] = useState(0);
 
   return (
     <TouchableWithoutFeedback onPress={Keyboard.dismiss} accessible={false}>
@@ -192,45 +133,51 @@ export default function Map() {
         {textInput ? 
           <TextInput 
             style={styles.input}
-            placeholder={'Type text for icon'}
+            placeholder={'Enter a text and set a mark'}
             onChangeText={text => setInputValue(text)}
             value={inputValue}
             maxLength={80}
           />
         :null}
         <View style={styles.mapContent}>
-          <View style={{top: '10%', width: '20%', zIndex: 1000}}>
+          <View style={{position: 'absolute', top: '5%', width: '20%', height: '40%', zIndex: 1000}}>
             {menu.map((item, index) => (
               <TouchableOpacity key={index} style={[styles.menuIcon, item.value ? {backgroundColor: 'rgba(0,17,30, 1)'} : null, ]} onPress={item.func ? () => item.func(!item.value) : null}>
                 <Image source={item.icon} style={{width: 24, height: 24, opacity: 0.8}} tintColor="#a2f6f7"/>
               </TouchableOpacity>
             ))}
           </View>
+          {/* <View style={{position: 'absolute', top: '5%', right: '12%', width: '30%', height: '8%', zIndex: 1000}}>
+            <TouchableOpacity style={[styles.menuIcon, {display: 'flex', width: '120%', flexDirection: 'row', borderRadius: 8, paddingVertical: 4, alignItems: 'center', backgroundColor: 'rgba(0,17,30, 0.8)'}]}
+              onPress={() => navigation.navigate('Wallet')}>
+                <Text style={{color: 'white'}}>Sol: {Number(balance.sol).toFixed(2)}; </Text>
+                <Text style={{color: 'white'}}>Nft: 0; </Text>
+                <Image source={Wallet} style={{width: 24, height: 24, opacity: 0.8, marginBottom: 2}} tintColor="#a2f6f7"/>
+            </TouchableOpacity>
+          </View> */}
             <>
               {toggleMenu ?
                 <View style={styles.signsContainer}>
                  <View style={styles.filter}>
                   {filters.map((item, index) => (
-                    <TouchableOpacity key={index} style={{margin: 10}} onPress={() =>  {setFilter(filtersIcons[index])}}>
+                    <TouchableOpacity key={index} style={{margin: 10}} onPress={() =>  {setFilter(index)}}>
                       <Image source={item} style={{width: 30, height: 30}} tintColor="#a2f6f7"/>
                     </TouchableOpacity>
                   ))}
                   </View>
                   <View style={styles.signs}>
-                    {selectedFilter.map((item, index) => (
-                      <TouchableOpacity key={index} style={{margin: 10}} onPress={() =>  {setSignsIcon(item), setToggleMenu(!toggleMenu)}}>
+                    {icons.current[selectedFilter].map((item, index) => (
+                      <TouchableOpacity key={index} style={{margin: 10}} onPress={() =>  {setSignsIcon(index), setToggleMenu(!toggleMenu)}}>
                         <Image source={item} style={{width: 30, height: 30}} />
                       </TouchableOpacity>
                     ))}
                   </View>
                 </View>
               : null}  
-              <MapContainer  isKeyboardVisible={isKeyboardVisible} addMarker={addMarker} global={global} markers={markers} setMarkers={setMarkers} allIcons={allIcons} setLike={setLike} />
+              <MapContainer  isKeyboardVisible={isKeyboardVisible} global={global} icons={icons} selectedFilter={selectedFilter} signsIcon={signsIcon} inputValue={inputValue} me={me} navigation={navigation} coins={coins} setCoins={setCoins}/>
+              {/* <PermissionsButton/> */}
             </>
         </View>
-        {notifiocation ?
-          <Text style={styles.notification} >Too close to others markers</Text>
-        : null}
       </View> 
     </TouchableWithoutFeedback>
   );
@@ -251,10 +198,12 @@ const styles = StyleSheet.create({
     zIndex: 9999,
   },
   mapContent: {
+    position: 'absolute',
+    bottom: 0,
     flexDirection: 'row', 
-    marginTop: '8%', 
+    // marginTop: '8%', 
     width: '100%', 
-    height: '96%'
+    height: '94%'
   },
   menuIcon: {
     margin: 8,
@@ -288,14 +237,5 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     width: '90%',
     alignItems: 'center'
-  },
-  notification: {
-    position: 'absolute',
-    color: 'white',
-    textShadowColor: 'rgba(0, 0, 0, 1)',
-    textShadowOffset: {width: -1, height: 1},
-    textShadowRadius: 10,
-    alignSelf: 'center',
-    bottom: '2%'
   }
 });

@@ -1,12 +1,8 @@
 import React, {useState} from 'react';
-import {StyleSheet, Dimensions, Text, View, TextInput, TouchableOpacity, TouchableWithoutFeedback, Keyboard, ScrollView, Image } from 'react-native';
+import {StyleSheet, Dimensions, Text, View, TextInput, Image, TouchableOpacity, TouchableWithoutFeedback, Keyboard, ScrollView, Button } from 'react-native';
 
 import { Formik } from 'formik';
 import * as Yup from 'yup';
-
-// import axios from 'axios';
-
-import SVG from '../components/SVG'
 
 import ArrowLeft from '../assets/arrowLeft.svg'
 
@@ -17,91 +13,87 @@ import GreyHiddenEye from  '../assets/red_hiddenEye.svg'
 
 import Danger from  '../assets/Danger.svg'
 
-import GradientButton from '../components/GradientButton'
+import { io } from 'socket.io-client'
+
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 function Register({ navigation }) {
 
-  let [passHide, setPassHide] = useState(true);
-  let [passRepeatHide, setPassRepeatHide] = useState(true);
-  
-  let [regErrorTitle, setRegErrorTitle] = useState('Incorrect email or password');
-  let [regError, setRegError] = useState(false);
-  let [registrationStatus, setRegistrationStatus] = useState(false);
+  let [passHide, setPassHide] = useState(true),
+    [passRepeatHide, setPassRepeatHide] = useState(true),
+    [nicknameErr, setNicknameErr] = useState(false),
+    [socket, setSocket] = React.useState(null)
+
+  React.useEffect(() => {
+    console.log('socket connection')
+    const newSocket = io(`https://network-back.herokuapp.com/`)      
+    setSocket(newSocket)
+    console.log('socket connected')
+  }, [])
 
   const validationSchema = Yup.object().shape({
     name: Yup.string()
-      .required(),
-    email: Yup.string()
-      .required()
-      .email(),
+    .min(2, 'Must be min. 2 characters')
+    .required('Required'),
     password: Yup.string()
-        .min(8)
+        .min(8, 'Must be min. 8 characters')
         .matches(
           /^(?=.*[A-Za-z])(?=.*\d)[A-Za-z\d@$!%*#?&]{8,}$/,
-        )
-        .required(),
+         "Must be in english, with numbers and special characters")
+        .required('Required'),
     passwordRepeat: Yup.string()
-        .oneOf([Yup.ref('password')])
-        .required(),       
+        .oneOf([Yup.ref('password')], "Passwords doesn't mutch")
+        .required('Required'),       
   })
-
-
 
   return (
     <Formik
       initialValues={{ 
-      email: '', name: '', password: '', passwordRepeat: '', newsletterSubscription: false }}
+      name: '', password: '', passwordRepeat: '' }}
       validationSchema={validationSchema}
       validateOnChange={false}
       validateOnBlur={false}
-      onSubmit={async (values, actions) => {
-        // async function test(){
-        //   let data = await axios.post("http://api-acceptance.budgeist.com", {
-        //     }, {
-        //       headers: {
-        //         'Content-Type': 'application/json',
-        //       }
-        //     });
-            
-        //     if(data.data.data.registration.status==="error"){
-        //       setRegError(true)
-        //       if(data.data.data.registration.error){
-        //          setRegErrorTitle(data.data.data.registration.error.message) 
-        //       }
-        //     }else{
-        //       setRegError(false)
-        //       setRegistrationStatus(true)
-        //     }
-        //   }
-        //     test()
+      onSubmit={ async (values, actions) => {
+        console.log(values)
+        await socket.emit('creating user',  {
+          name: values.name,
+          password: values.password
+        }, async function (event) {
+          console.log(event)
+          if(event==='Error'){
+            setNicknameErr(true)
+          }else{
+            setNicknameErr(false)
+            try {
+              await AsyncStorage.setItem('@user_hash', event)
+            } catch (e) {
+              console.log('async storage error: ', e)
+            }
+            navigation.navigate("Map")
+          }
+        })
       }}>
       {({ handleChange, handleBlur, handleSubmit, setFieldValue, isValid, dirty, touched, errors, values }) => (
         <TouchableWithoutFeedback onPress={Keyboard.dismiss} accessible={false}>
           <ScrollView style={styles.container}>
             <View style={styles.content}>
               <TouchableOpacity style={styles.arrowLeft} onPress={() => navigation.goBack()}>
-                <SVG icon={ArrowLeft} style={styles.arrowLeftIcon}/>
+                <Image source={ArrowLeft} style={styles.arrowLeftIcon}/>
               </TouchableOpacity>
               <View style={styles.component}>
                 <Text style={styles.textLogin}>Create account</Text>
                 <View style={styles.loginWays}>
                   <View style={styles.inputContainer}>
-                    <Text style={styles.label}>Name</Text>
+                    <Text style={styles.label}>Nickname</Text>
                     <TextInput
                       style={[styles.input, (errors.name&&touched.name) ? {borderColor: '#E64646'} : null]}
                       onChangeText={handleChange('name')}
                       onBlur={handleBlur('name')}
                       value={values.name}
-                      placeholder={'Enter your name'}
+                      placeholder={'Enter your nickname'}
                     />
-                    <Text style={styles.label}>Email address </Text>
-                    <TextInput
-                      style={[styles.input, (errors.email&&touched.email) ? {borderColor: '#E64646'} : null]}
-                      onChangeText={handleChange('email')}
-                      onBlur={handleBlur('email')}
-                      value={values.email}
-                      placeholder={'E-Mail'}
-                    />
+                    {errors.name &&
+                      <Text style={{color: '#E64646'}}>{errors.name}</Text>}
                     <Text style={styles.label}>Create password</Text>
                     <View style={styles.input_n_Icon}>
                       <TextInput
@@ -111,21 +103,23 @@ function Register({ navigation }) {
                         value={values.password}
                         secureTextEntry={passHide}
                         placeholder={'Choose a password'}
-                      />
+                      />                     
                       <TouchableOpacity style={styles.eye} onPress={() => setPassHide(!passHide)}>
                         {passHide ? 
                           errors.password ?
-                            <SVG icon={GreyEye} style={{width: 22, height: 16}} /> 
+                            <Image source={GreyEye} style={{width: 22, height: 16}} /> 
                           : 
-                          <SVG icon={Eye} style={{width: 22, height: 16}} /> 
+                          <Image source={Eye} style={{width: 22, height: 16}} /> 
                           :
                             errors.password ? 
-                            <SVG icon={GreyHiddenEye} style={{width: 22, height: 16}} />
+                            <Image source={GreyHiddenEye} style={{width: 22, height: 16}} />
                         : 
-                          <SVG icon={HiddenEye} style={{width: 22, height: 16}} />
+                          <Image source={HiddenEye} style={{width: 22, height: 16}} />
                         }
                       </TouchableOpacity>
                     </View>
+                    {errors.password &&
+                      <Text style={{color: '#E64646'}}>{errors.password}</Text>}                     
                     <Text style={styles.label}>Confirm password</Text>
                     <View style={styles.input_n_Icon}>
                       <TextInput
@@ -139,36 +133,23 @@ function Register({ navigation }) {
                       <TouchableOpacity style={styles.eye} onPress={() => setPassRepeatHide(!passRepeatHide)}>
                       {passRepeatHide ?
                         errors.passwordRepeat ?
-                          <SVG icon={GreyEye} style={{width: 22, height: 16}} /> 
+                          <Image source={GreyEye} style={{width: 22, height: 16}} /> 
                         : 
-                          <SVG icon={Eye} style={{width: 22, height: 16}} /> 
+                          <Image source={Eye} style={{width: 22, height: 16}} /> 
                         :
                         errors.passwordRepeat ? 
-                          <SVG icon={GreyHiddenEye} style={{width: 22, height: 16}} />
+                          <Image source={GreyHiddenEye} style={{width: 22, height: 16}} />
                         : 
-                          <SVG icon={HiddenEye} style={{width: 22, height: 16}} />
+                          <Image source={HiddenEye} style={{width: 22, height: 16}} />
                       }
                       </TouchableOpacity>
                     </View>    
-                    <View style={styles.subscribtion}>
-                      <View style={{display: 'flex', flexDirection: 'row', alignItems: 'center'}}>
-                        <Text style={styles.subsText}>Newsletter subscription</Text>
-                        <TouchableOpacity style={styles.checkbox} onPress={() => setFieldValue('newsletterSubscription', !values.newsletterSubscription)}>
-                        {values.newsletterSubscription ? 
-                          <View style={styles.selected}/>  
-                          : null
-                        }
-                        </TouchableOpacity>              
-                      </View>
-                    </View>                     
-                    {dirty ? 
-                      <View style={styles.attention}>
-                        <Danger style={{width: 22}} /> 
-                        <Text style={styles.danger}>{regErrorTitle}</Text>
-                      </View>
-                    : null}
+                    {errors.passwordRepeat &&
+                      <Text style={{color: '#E64646'}}>{errors.passwordRepeat}</Text>}                     
                     <View style={[styles.gradientButton, !isValid ? styles.shadowed : null]}>
-                      <GradientButton isValid={isValid&&dirty} func={handleSubmit} title="Register" link={registrationStatus&&isValid&&dirty ? '' : 'Login'} />
+                      {nicknameErr &&
+                        <Text style={{textAlign: 'center', marginBottom: 20, color: '#E64646'}}>User with this nickname already exist</Text>}
+                        <Button onPress={() => handleSubmit()} title="Register"/>
                     </View>                            
                   </View>
                 </View>      
@@ -220,7 +201,7 @@ const styles = StyleSheet.create({
   },
   textLogin: {
     alignSelf: 'flex-start',
-    fontFamily: 'OpenSauceSans-Black',
+    // fontFamily: 'OpenSauceSans-Black',
     color: '#252525',
     fontSize: 32,
     width: '90%',
@@ -250,7 +231,7 @@ const styles = StyleSheet.create({
     borderWidth: 1.5,
     backgroundColor: '#fff',
     color: '#8A8A8A',
-    fontFamily: 'OpenSauceSans-Regular',
+    // fontFamily: 'OpenSauceSans-Regular',
     marginBottom: windowHeight/100*0.9
   }, 
   input_n_Icon: {
@@ -269,7 +250,7 @@ const styles = StyleSheet.create({
     paddingRight: '4%',
   },
   forgottenText: {
-    fontFamily: 'OpenSauceSans-Bold',
+    // fontFamily: 'OpenSauceSans-Bold',
     color: '#3F5EFB',
     fontSize: 16
   },
@@ -279,7 +260,7 @@ const styles = StyleSheet.create({
     marginLeft: '7.6%'
   },
   subsText: {
-    fontFamily: 'OpenSauceSans-Regular',
+    // fontFamily: 'OpenSauceSans-Regular',
     fontSize: 14
   },
   checkbox: {
@@ -308,14 +289,14 @@ const styles = StyleSheet.create({
     paddingHorizontal: '20%'
   },
   danger: {
-    fontFamily: 'OpenSauceSans-Bold',
+    // fontFamily: 'OpenSauceSans-Bold',
     fontSize: 12,
     color: '#FF6740'
   },
   gradientButton: {
-    marginTop: windowHeight/100*6,
+    marginTop: windowHeight/100*20,
     width: '100%', 
-    height: 56
+    height: 86
   },
   shadowed: {
     opacity: 0.5
@@ -324,12 +305,12 @@ const styles = StyleSheet.create({
     marginTop: windowHeight/100*8,    
     textAlign: 'center',
     fontSize: 16,
-    fontFamily: 'OpenSauceSans-Regular',
+    // fontFamily: 'OpenSauceSans-Regular',
     color: '#6B7680'
   },
   signUp: {
     fontSize: 16,
-    fontFamily: 'OpenSauceSans-Bold',
+    // fontFamily: 'OpenSauceSans-Bold',
     color: '#3f5efb'
   }
 });

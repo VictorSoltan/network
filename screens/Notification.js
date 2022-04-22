@@ -11,7 +11,7 @@ Notifications.setNotificationHandler({
   }),
 });
 
-export default function App({bool}) {
+export default function App() {
   const [expoPushToken, setExpoPushToken] = useState('');
   const [notification, setNotification] = useState(false);
   const notificationListener = useRef();
@@ -39,13 +39,11 @@ export default function App({bool}) {
   );
 }
 
-async function schedulePushNotification() {
-  console.log('ssssssssssssssssssssssssssssssssss')
+async function schedulePushNotification(sign, author) {
   await Notifications.scheduleNotificationAsync({
     content: {
-      title: "You've got mail! 📬",
-      body: 'Here is the notification body',
-      data: { data: 'goes here' },
+      title: `You've passed a ${author} mark`,
+      body: sign
     },
     trigger: { seconds: 2 },
   });

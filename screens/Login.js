@@ -1,14 +1,10 @@
 import React, {useState} from 'react';
-import {StyleSheet, Dimensions, Text, View, ScrollView, TextInput, TouchableOpacity, TouchableWithoutFeedback, Keyboard, Image } from 'react-native';
+import {StyleSheet, Dimensions, Text, View, ScrollView, TextInput, TouchableOpacity, TouchableWithoutFeedback, Keyboard, Button } from 'react-native';
 
 import { Formik } from 'formik';
 import * as Yup from 'yup';
-// import axios from 'axios';
+import axios from 'axios';
 // import AsyncStorage from '@react-native-async-storage/async-storage'
-
-import SVG from '../components/SVG'
-
-import ArrowLeft from '../assets/arrowLeft.svg'
 
 import Eye from  '../assets/fa-solid_eye.svg'
 import HiddenEye from  '../assets/hiddenEye.svg'
@@ -16,8 +12,6 @@ import GreyEye from  '../assets/red_fa-solid_eye.svg'
 import GreyHiddenEye from  '../assets/red_hiddenEye.svg'
 
 import Danger from  '../assets/Danger.svg'
-
-import GradientButton from '../components/GradientButton'
 
 export default function Login({ navigation }) {
 
@@ -28,74 +22,57 @@ export default function Login({ navigation }) {
   let [loginStatus, setLoginStatus] = useState(false);
 
   const validationSchema = Yup.object().shape({
-    mail: Yup.string()
-      .required()
-      .email(),
+    name: Yup.string()
+      .required('Required'),
     password: Yup.string()
-      .min(8)
-      .required()
+        .min(8, 'Must be min 8 characters')
+        .matches(
+          /^(?=.*[A-Za-z])(?=.*\d)[A-Za-z\d@$!%*#?&]{8,}$/,
+         "Some characters in your password doesn't allowed")
+        .required('Required'),
   })
 
   return (
     <Formik
     initialValues={{ 
-    mail: '', password: ''}}
+      name: '', password: '',}}
     validationSchema={validationSchema}
     validateOnChange={false}
     validateOnBlur={false}
-    onSubmit={async (values) => {
-      async function login(){
-        let data = await axios.post("http://api-acceptance.budgeist.com", {
-            query: `
-            mutation{
-              login(email: "${values.mail}", password: "${values.password}", fingerprint: ""){
-                  status
-                  error
-                  user {
-                      id
-                      email
-                      name
-                  }
-                  token
-              }
-          }`
-          }, {
-            headers: {
-              'Content-Type': 'application/json',
-            }
-          });
-          if(data.data.data.login.status==="ok"){
-            AsyncStorage.setItem('token', data.data.data.login.token)
-            setLoginError(false)
-            setLoginStatus(true)
-          }else{
-            setLoginError(true)
-            if(data.data.data.login.error){
-               setLoginErrorTitle(data.data.data.login.error.message) 
-            }
-          }
-        }
-        login()
+    onSubmit={(values) => {
+      console.log('login')
+      axios.post("http://192.168.1.3:5000/login/", {    
+        name: values.name,
+        password: values.password
+      })
+      .then(function (response) {
+        console.log(response.data);
+        if(response.data === "Login or password doesn't mutch") setLoginError(true)
+        else if(response.data === "Success") navigation.navigate('Map')
+      })
+      .catch(function (error) {
+        console.log(error);
+      });
     }}>
     {({ handleChange, handleBlur, handleSubmit, isValid, dirty, errors, touched, values }) => (
       <TouchableWithoutFeedback onPress={Keyboard.dismiss} accessible={false}>
         <ScrollView style={{flex: 1}}>
         <View style={styles.container}>
-          <TouchableOpacity style={styles.arrowLeft} onPress={() => navigation.goBack()}>
-            <SVG icon={ArrowLeft} style={styles.arrowLeftIcon}/>
-          </TouchableOpacity>
           <View style={styles.component}>
-            <Text style={styles.textLogin}>Login with email</Text>
+            <Text style={styles.textLogin}>Login with Nickname</Text>
             <View style={styles.loginWays}>
                 <View style={{width: '100%'}}>
-                  <Text style={styles.label}>Email address </Text>
+                  <Text style={styles.label}>Nickname </Text>
                   <TextInput
-                    style={[styles.input, (errors.mail&&touched.mail) ? {borderColor: '#E64646'} : null]}
-                    onChangeText={handleChange('mail')}
-                    onBlur={handleBlur('mail')}
-                    value={values.mail}
-                    placeholder={'Enter your email address'}
+                    style={[styles.input, (errors.name&&touched.name) ? {borderColor: '#E64646'} : null]}
+                    onChangeText={handleChange('name')}
+                    onBlur={handleBlur('name')}
+                    value={values.name}
+                    placeholder={'Enter your nickname'}
                   />
+                  {errors.name &&
+                      <Text style={{color: '#E64646'}}>{errors.name}</Text>}
+
                   <Text style={styles.label}>Password </Text>
                   <View style={styles.input_n_Icon}>
                     <TextInput
@@ -109,35 +86,37 @@ export default function Login({ navigation }) {
                     <TouchableOpacity style={styles.eye} onPress={() => setPassHide(!passHide)}>
                       {!passHide ? 
                         errors.password ?
-                          <SVG icon={Eye} style={{width: 22}} /> 
+                          <Eye style={{width: 22}} /> 
                         : 
-                        <SVG icon={GreyEye} style={{width: 22}} /> 
+                        <GreyEye style={{width: 22}} /> 
                         :
                           errors.password ? 
-                          <SVG icon={HiddenEye} style={{width: 22}} />
+                          <HiddenEye style={{width: 22}} />
                         : 
-                        <SVG icon={GreyHiddenEye} style={{width: 22}} />
+                        <GreyHiddenEye style={{width: 22}} />
                       }
                     </TouchableOpacity>
                   </View>
+                  {errors.password &&
+                      <Text style={{color: '#E64646'}}>{errors.password}</Text>}                  
                   <TouchableOpacity style={styles.forgotten} onPress={() => navigation.navigate('ForgotPass')}>
                     <Text style={styles.forgottenText}>Forgot?</Text>
                   </TouchableOpacity>
                   {isValid&&loginError ? 
                     <View style={styles.attention}>
-                      <SVG icon={Danger} style={{width: 22}} /> 
-                      <Text style={styles.danger}>{loginErrorTitle}</Text>
+                      <Danger style={{width: 22}} /> 
+                      <Text style={styles.danger}>{"Login or password doesn't mutch"}</Text>
                     </View>
                   : null}
                   <View style={[styles.gradientButton, !isValid ? styles.shadowed : null]}>
-                    <GradientButton isValid={isValid&&dirty} func={handleSubmit} title="Login" link={loginStatus&&isValid&&dirty ? '' : 'Wallets'}/>
+                    <Button onPress={() => handleSubmit()} title="Login"/>
                   </View>                            
                 </View>
               </View>      
             </View>
             <View style={styles.noAccount}>
             <Text style={styles.noAccountText} >Dont have account? </Text> 
-            <TouchableOpacity onPress={() => navigation.navigate('Register')}>
+            <TouchableOpacity onPress={() => navigation.navigate('Registration')}>
               <Text style={styles.signUpText}>Sign up</Text>
             </TouchableOpacity>
           </View>      
@@ -153,8 +132,11 @@ let windowWidth = Dimensions.get('window').width;
   
 const styles = StyleSheet.create({
   container: {
+    marginTop: '7%',
+    flex: 1,
     backgroundColor: '#fff',
     alignItems: 'center',
+    height: windowHeight
   },
   union: {
     position: 'absolute',
@@ -254,7 +236,7 @@ const styles = StyleSheet.create({
     color: '#FF6740'
   },
   gradientButton: {
-    marginTop: windowHeight/100*5,
+    marginTop: windowHeight/100*15,
     width: '100%', 
     height: 56
   },
