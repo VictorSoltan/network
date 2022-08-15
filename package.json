@@ -1,6 +1,6 @@
 {
   "name": "network",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "main": "node_modules/expo/AppEntry.js",
   "scripts": {
     "start": "expo start",
@@ -27,6 +27,8 @@
     "react-native-google-places-autocomplete": "^2.4.1",
     "react-native-map-clustering": "^3.4.2",
     "react-native-maps": "0.28.0",
+    "react-native-maps-directions": "^1.8.0",
+    "react-native-maps-with-navigation": "^0.20.2",
     "react-native-safe-area-context": "3.3.2",
     "react-native-web": "0.17.1",
     "socket.io-client": "^4.4.1",

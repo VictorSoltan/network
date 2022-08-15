@@ -4,14 +4,14 @@ import {StyleSheet, Dimensions, Text, View, TextInput, Image, TouchableOpacity, 
 import { Formik } from 'formik';
 import * as Yup from 'yup';
 
-import ArrowLeft from '../assets/arrowLeft.svg'
+// import ArrowLeft from '../assets/arrowLeft.svg'
 
-import Eye from  '../assets/fa-solid_eye.svg'
-import HiddenEye from  '../assets/hiddenEye.svg'
-import GreyEye from  '../assets/red_fa-solid_eye.svg'
-import GreyHiddenEye from  '../assets/red_hiddenEye.svg'
+// import Eye from  '../assets/fa-solid_eye.svg'
+// import HiddenEye from  '../assets/hiddenEye.svg'
+// import GreyEye from  '../assets/red_fa-solid_eye.svg'
+// import GreyHiddenEye from  '../assets/red_hiddenEye.svg'
 
-import Danger from  '../assets/Danger.svg'
+// import Danger from  '../assets/Danger.svg'
 
 import { io } from 'socket.io-client'
 
@@ -19,9 +19,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 
 function Register({ navigation }) {
 
-  let [passHide, setPassHide] = useState(true),
-    [passRepeatHide, setPassRepeatHide] = useState(true),
-    [nicknameErr, setNicknameErr] = useState(false),
+  let [nicknameErr, setNicknameErr] = useState(false),
     [socket, setSocket] = React.useState(null)
 
   React.useEffect(() => {
@@ -34,30 +32,21 @@ function Register({ navigation }) {
   const validationSchema = Yup.object().shape({
     name: Yup.string()
     .min(2, 'Must be min. 2 characters')
-    .required('Required'),
-    password: Yup.string()
-        .min(8, 'Must be min. 8 characters')
-        .matches(
-          /^(?=.*[A-Za-z])(?=.*\d)[A-Za-z\d@$!%*#?&]{8,}$/,
-         "Must be in english, with numbers and special characters")
-        .required('Required'),
-    passwordRepeat: Yup.string()
-        .oneOf([Yup.ref('password')], "Passwords doesn't mutch")
-        .required('Required'),       
+    .max(25, "Can't be bigger then 25 characters")
+    .trim('The contact name cannot include leading and trailing spaces')
+    .required('Required')  
   })
 
   return (
     <Formik
-      initialValues={{ 
-      name: '', password: '', passwordRepeat: '' }}
+      initialValues={{name: ''}}
       validationSchema={validationSchema}
       validateOnChange={false}
       validateOnBlur={false}
       onSubmit={ async (values, actions) => {
         console.log(values)
         await socket.emit('creating user',  {
-          name: values.name,
-          password: values.password
+          name: values.name
         }, async function (event) {
           console.log(event)
           if(event==='Error'){
@@ -77,11 +66,11 @@ function Register({ navigation }) {
         <TouchableWithoutFeedback onPress={Keyboard.dismiss} accessible={false}>
           <ScrollView style={styles.container}>
             <View style={styles.content}>
-              <TouchableOpacity style={styles.arrowLeft} onPress={() => navigation.goBack()}>
+              {/* <TouchableOpacity style={styles.arrowLeft} onPress={() => navigation.goBack()}>
                 <Image source={ArrowLeft} style={styles.arrowLeftIcon}/>
-              </TouchableOpacity>
+              </TouchableOpacity> */}
               <View style={styles.component}>
-                <Text style={styles.textLogin}>Create account</Text>
+                <Text style={styles.textLogin}>Enter a nickname to proceed...</Text>
                 <View style={styles.loginWays}>
                   <View style={styles.inputContainer}>
                     <Text style={styles.label}>Nickname</Text>
@@ -90,11 +79,12 @@ function Register({ navigation }) {
                       onChangeText={handleChange('name')}
                       onBlur={handleBlur('name')}
                       value={values.name}
-                      placeholder={'Enter your nickname'}
+                      placeholderTextColor="#a2f6f7" 
+                      placeholder={'Enter your nickname...'}
                     />
                     {errors.name &&
                       <Text style={{color: '#E64646'}}>{errors.name}</Text>}
-                    <Text style={styles.label}>Create password</Text>
+                    {/* <Text style={styles.label}>Create password</Text>
                     <View style={styles.input_n_Icon}>
                       <TextInput
                         style={[styles.input, (errors.password&&touched.password) ? {borderColor: '#E64646'} : null]}
@@ -145,11 +135,13 @@ function Register({ navigation }) {
                       </TouchableOpacity>
                     </View>    
                     {errors.passwordRepeat &&
-                      <Text style={{color: '#E64646'}}>{errors.passwordRepeat}</Text>}                     
+                      <Text style={{color: '#E64646'}}>{errors.passwordRepeat}</Text>}                      */}
                     <View style={[styles.gradientButton, !isValid ? styles.shadowed : null]}>
                       {nicknameErr &&
-                        <Text style={{textAlign: 'center', marginBottom: 20, color: '#E64646'}}>User with this nickname already exist</Text>}
-                        <Button onPress={() => handleSubmit()} title="Register"/>
+                        <Text style={{textAlign: 'center', marginBottom: 0, color: '#E64646'}}>User with this nickname already exist</Text>}
+                        <TouchableOpacity style={styles.button} onPress={() => handleSubmit()}>
+                          <Text style={{color: 'white', textAlign: 'center', fontSize: 16}}>Proceed to map</Text>
+                        </TouchableOpacity>
                     </View>                            
                   </View>
                 </View>      
@@ -169,8 +161,10 @@ let windowWidth = Dimensions.get('window').width;
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#fff',
-    height: windowHeight
+    height: windowHeight,
+    color: 'white',
+    backgroundColor: '#121212',
+    marginTop: '7%'
   },
   content: {
     alignItems: 'center'
@@ -197,12 +191,12 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     width: '87%',
-    marginTop: '6%'
+    marginTop: '26%'
   },
   textLogin: {
     alignSelf: 'flex-start',
     // fontFamily: 'OpenSauceSans-Black',
-    color: '#252525',
+    color: 'white',
     fontSize: 32,
     width: '90%',
     marginLeft: '7.6%'
@@ -211,26 +205,28 @@ const styles = StyleSheet.create({
     marginTop: windowHeight/100*2.2,
     justifyContent: 'center',
     width: '100%',
+    marginTop: '26%'
   },
   label: {
+    color: '#a2f6f7',
     alignSelf: 'flex-start',
     fontSize: 12,
     marginTop: windowHeight/100*2.2,
     marginBottom: windowHeight/100*1.2,
+    marginTop: '17.6%',
     marginLeft: '7.6%'
   },
   input: {
-    width: '100%',
-    fontSize: 16,
-    paddingVertical: windowHeight/100*2.2,
-    justifyContent: 'center',
-    alignItems: 'center',
+    backgroundColor: '#0a0020',
+    width: '94%',
+    margin: 12,
+    padding: '4%',
     paddingLeft: '5%',
+    paddingRight: '20%',
     borderColor: '#E8E8E8',
     borderRadius: 100,
-    borderWidth: 1.5,
-    backgroundColor: '#fff',
-    color: '#8A8A8A',
+    borderWidth: 1,
+    color: '#a2f6f7',
     // fontFamily: 'OpenSauceSans-Regular',
     marginBottom: windowHeight/100*0.9
   }, 
@@ -294,9 +290,17 @@ const styles = StyleSheet.create({
     color: '#FF6740'
   },
   gradientButton: {
-    marginTop: windowHeight/100*20,
+    marginTop: windowHeight/100*30,
     width: '100%', 
     height: 86
+  },
+  button: {
+    borderRadius: 20,
+    backgroundColor: 'rgba(10,37,100, 0.6)',
+    width: '94%',
+    margin: 12,
+    padding: '4%',
+    color: 'white',    
   },
   shadowed: {
     opacity: 0.5

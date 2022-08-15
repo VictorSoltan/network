@@ -75,6 +75,7 @@ export default function Chat({ route, navigation }) {
         name: me.current
       })
     }
+    changeMessage('')
   }
 
   let [notification, setNotification] = useState(false)
@@ -119,6 +120,7 @@ export default function Chat({ route, navigation }) {
             style={styles.input}
             onChangeText={changeMessage}
             value={message}
+            placeholderTextColor="white" 
             placeholder="Type here..."
           />
           <TouchableOpacity style={styles.sendButton} onPress={() => sendMessage()}>
@@ -231,7 +233,7 @@ const styles = StyleSheet.create({
   TriangleShapeLeftCSS: {
     borderRightWidth: 22,
     marginLeft: '4%',
-    borderTopColor: '#121212',
+    borderTopColor: '#112B66',
   }, 
   TriangleShapeRightCSS: {
     borderLeftWidth: 22,

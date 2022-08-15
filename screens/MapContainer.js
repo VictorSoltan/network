@@ -1,9 +1,8 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { StyleSheet, Dimensions, View, Text, TouchableOpacity, Image, ToastAndroid, Button } from 'react-native';
+import { StyleSheet, Dimensions, View, Text, Vibration, TouchableOpacity, Image, ToastAndroid, Button } from 'react-native';
 import * as Location from 'expo-location';
-import { Marker, Callout } from 'react-native-maps';
-import MapView from "react-native-map-clustering";
-
+import MapView, { Marker, Callout } from 'react-native-maps';
+import MapViewDirections from 'react-native-maps-directions';
 import Like from '../assets/map/like.png'
 import Dislike from '../assets/map/dislike.png'
 import Notification from './Notification';
@@ -17,14 +16,14 @@ import { schedulePushNotification } from './Notification';
 
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
-export default function MapContainer({isKeyboardVisible, global, icons, selectedFilter, signsIcon, inputValue, me, navigation, coins, setCoins }){
+export default function MapContainer({isKeyboardVisible, global, icons, selectedFilter, signsIcon, inputValue, me, route, navigation, coins, setCoins, path, setPath}){
   
   const 
     [location, setLocation] = useState({latitude: 1, longitude: 1}),
     [errorMsg, setErrorMsg] = useState(null)
 
   let [markerMenu, setMarkerMenu] = useState(false),
-      [openChat, setOpenChat] = useState(false),
+        [openChat, setOpenChat] = useState(false),
       [icon, setIcon] = useState(Ι26),
       [indx, setIndx] = useState(0),
       sign = useRef(null),
@@ -32,18 +31,36 @@ export default function MapContainer({isKeyboardVisible, global, icons, selected
       [socket, setSocket] = useState(null),
       [markers, setMarkers] = useState([]),
       [trackMarkers, setTrackMarkers] = useState([]),
-      hash = useRef(null)
-
+      hash = useRef(null),
+      { markToFollow, friend } = route?.params || {};
+  console.log('friend ', friend)
   useEffect( async () => {
       hash.current = await AsyncStorage.getItem('@user_hash')
       console.log('socket connection')
       const newSocket = io(`https://network-back.herokuapp.com/`)      
       setSocket(newSocket)
       console.log('socket connected')
-  }, [])
+      console.log('markToFollow ', markToFollow)
+      if(markToFollow){
+        setMarkers([markToFollow])
+        setIndx(markToFollow)
+        setPath(true)
+      }
+      if(friend){
+        console.log('friend1')
+        socket.emit('transfering friends marks', {hash: hash.current, friend: friend}, function(event){
+          console.log('friends marks ', event)
+          setMarkers(event)
+        })
+        setIndx([])
+      }
+    }, [markToFollow, friend])
+
+
+
 
   useEffect(() => {
-    if(socket&&hash.current&&!coins){
+    if(socket&&hash.current&&!coins&&!markToFollow&&!friend){
       setMarkerMenu(false)
       socket.emit('authenticate', hash.current, function(event) {me.current = event})
       socket.on('create user', function(event){
@@ -67,8 +84,16 @@ export default function MapContainer({isKeyboardVisible, global, icons, selected
         console.log(event)
         setMarkers(event)
       })
-      socket.on('good job', function(){
+      socket.on('good job', async function(){
         ToastAndroid.show("U collected all coins, bravo!", ToastAndroid.SHORT);
+        await socket.emit('add mark', {
+          hash: hash.current,
+          filterIndex: 5,
+          signIndex: 0,
+          longitude: location.longitude,
+          latitude: location.latitude,
+          text: 'This user collected all coins in coin game!'
+        })
         setCoins(false)
       })
     }
@@ -98,30 +123,44 @@ export default function MapContainer({isKeyboardVisible, global, icons, selected
   }, [global]);
 
  function addMarker(e){
-   console.log(e)
-    if(Math.abs(location.latitude-e.nativeEvent.coordinate.latitude)   <0.0008
-    &&Math.abs(location.longitude-e.nativeEvent.coordinate.longitude)<0.0008){
-      socket.emit('add mark', {
+     Vibration.vibrate(80)
+    if(friend){
+      console.log('add mark for friend')
+      socket.emit('add mark for friend', {
+        name: friend,
         hash: hash.current,
         filterIndex: selectedFilter,
         signIndex: signsIcon,
         longitude: e.nativeEvent.coordinate.longitude,
         latitude: e.nativeEvent.coordinate.latitude,
         text: inputValue
+      }, function(event){
+        setMarkers(event)
       })
-      if(selectedFilter===4&&signsIcon===1){
-        ToastAndroid.show("Starting coin game!", ToastAndroid.SHORT);
-        socket.emit('coin game', {
+    }else{
+      if(Math.abs(location.latitude-e.nativeEvent.coordinate.latitude)   <0.0008
+      &&Math.abs(location.longitude-e.nativeEvent.coordinate.longitude)<0.0008){
+        Vibration.vibrate(120)
+        socket.emit('add mark', {
           hash: hash.current,
           filterIndex: selectedFilter,
           signIndex: signsIcon,
           longitude: e.nativeEvent.coordinate.longitude,
-          latitude: e.nativeEvent.coordinate.latitude
+          latitude: e.nativeEvent.coordinate.latitude,
+          text: inputValue
         })
-        setCoins(true)
-      }
-    }else{
-      ToastAndroid.show("U trying to set mark too far from your location", ToastAndroid.SHORT);
+        if(selectedFilter===4&&signsIcon===1){
+          ToastAndroid.show("Starting coin game!", ToastAndroid.SHORT);
+          socket.emit('coin game', {
+            hash: hash.current,
+            filterIndex: selectedFilter,
+            signIndex: signsIcon,
+            longitude: e.nativeEvent.coordinate.longitude,
+            latitude: e.nativeEvent.coordinate.latitude
+          })
+          setCoins(true)
+        }
+      } else ToastAndroid.show("U trying to set mark too far from your location", ToastAndroid.SHORT);
     }
   }
 
@@ -168,13 +207,18 @@ export default function MapContainer({isKeyboardVisible, global, icons, selected
   }
 
   function openMenu(index){
+    console.log(index)
     setMarkerMenu(true)
     setIndx(index)
-    if(index.filterIndex===4&&Math.abs(location.latitude-index.latitude)<0.0009
+    if(Math.abs(location.latitude-index.latitude)<0.0009
     &&Math.abs(location.longitude-index.longitude)<0.0009) {
-      if(index.signIndex===0) setIcon(Ι26)
-      else if(index.signIndex===1) setIcon(Start)
-      setOpenChat(true)
+      if(index.filterIndex===4){
+        if(index.signIndex===0) setIcon(Ι26)
+        else if(index.signIndex===1) setIcon(Start)
+        setOpenChat(true)
+      }else{
+        setOpenChat(false)
+      }
     }
     else { setOpenChat(false)
       ToastAndroid.show("Too far!", ToastAndroid.SHORT);
@@ -190,6 +234,7 @@ export default function MapContainer({isKeyboardVisible, global, icons, selected
         navigation.navigate('Chat', {index: indx._id, me: me})
       }else if(indx.filterIndex===4&&indx.signIndex===1){
         if(coins){
+          Vibration.vibrate(50)
           socket.emit('collect coin', {mark: indx, hash: hash.current}, function(event){
             setMarkerMenu(false)
             setMarkers(event)
@@ -203,13 +248,15 @@ export default function MapContainer({isKeyboardVisible, global, icons, selected
       ToastAndroid.show("Too far!", ToastAndroid.SHORT);
     }
   }
-
+  const origin = {latitude: 37.3318456, longitude: -122.0296002};
+  const destination = {latitude: 37.771707, longitude: -122.4053769};
+  const GOOGLE_MAPS_APIKEY = 'AIzaSyBgVeCnfY8ngGO4Qlo8l07yf8gvwztJCOc';
   return(
     <>
       <Notification />
       <MapView
         onStartShouldSetResponder={!isKeyboardVisible ? () => true : null}
-        style={{position: 'absolute', bottom: 0, width: '100%', height: windowHeight}}
+        style={{position: 'absolute', top: '1%', width: '100%', height: '99%'}}
         onLongPress={location&&socket ? e => addMarker(e) : null}
         mapType = {'hybrid'}
         userInterfaceStyle={'dark'}
@@ -217,6 +264,8 @@ export default function MapContainer({isKeyboardVisible, global, icons, selected
         onPress={() => setMarkerMenu(false)}
         zoomEnabled={true} scrollEnabled={true}
         showsUserLocation={true}
+        tracksViewChanges={true}
+        loadingEnabled={true}
         moveOnMarkerPress={global}
         region={location&&!global ? { 
           latitude: location.latitude,
@@ -224,23 +273,35 @@ export default function MapContainer({isKeyboardVisible, global, icons, selected
           latitudeDelta: 0.002,
           longitudeDelta: 0.001421} :           
           {latitudeDelta: 0.002,
-          longitudeDelta: 0.001421}}    
+          longitudeDelta: 0.001421}
+        }    
       >
+        {path&&indx &&
+          <MapViewDirections
+            lineDashPattern={[1]}
+            lineCap="square"
+            origin={{latitude: location.latitude,
+            longitude: location.longitude}}
+            destination={{latitude: indx.latitude,
+            longitude: indx.longitude}}
+            apikey={GOOGLE_MAPS_APIKEY}
+            strokeWidth={3}
+            strokeColor="#90e3f9"
+          />
+        }
         {markers.length ? markers.map((item, index) => (
           <>
           {(item.name===me.current||item.filterIndex!==4||item.signIndex!==1) &&
-            <Marker onPress={() => openMenu(item)}
-              key={index} style={styles.marker}
+            <Marker onPress={() => openMenu(item)} key={index} style={styles.marker}
                tracksViewChanges={item.value} coordinate={{latitude: item.latitude, longitude: item.longitude }} >
                 {item.text?
                   <View style={styles.textMarker} />
                 : null}
-                <View style={item.likeAdded&&item.dislikeAdded ? styles.markerIconBack : styles.coinBack} />
                 <Image source={icons.current[item.filterIndex][item.signIndex]} style={styles.markerIcon} onLoad={() => setTrackItem(index)} />
                 {item.likeAdded&&item.dislikeAdded &&
                 <Text style={styles.like}>{item.likeAdded.length}/{item.dislikeAdded.length}</Text>}
                 <Callout tooltip={true} style={!coins ? styles.callout : {display: 'none'}} onPress={ !coins ? () =>          
-                  navigation.navigate('UserInfo', {nickname: item.name, icons: icons, onlySee: false}
+                  navigation.navigate('UserInfo', {nickname: item.name, me: me, icons: icons, onlySee: item.name === me.current?  true : false }
                 ) : null}>
                   <Text style={!coins ? styles.author : {display: 'none'}}>{item.name}</Text>
                   {item.text!== '' &&
@@ -273,6 +334,7 @@ const styles = StyleSheet.create({
   marker: {
     alignItems: 'center', 
     justifyContent: 'center', 
+    overflow: 'visible',
     height: 47
   },
   textMarker: {
@@ -280,7 +342,7 @@ const styles = StyleSheet.create({
     top: 0, 
     width: 6, 
     height: 6, 
-    backgroundColor: 'rgba(162, 246, 247, 0.8)', 
+    backgroundColor: 'rgba(12, 255, 255, 1)', 
     borderRadius: 4, 
     zIndex: 9999
   },
@@ -288,12 +350,12 @@ const styles = StyleSheet.create({
     position: 'absolute',
     backgroundColor: 'rgba(2, 140, 180, 0.5)', 
     borderRadius: 60,
-    width: 22, 
+    width: 40, 
     height: 40,
   },
   markerIcon: {
     width: 22, 
-    height: 22,
+    height: 26,
   },
   like: {
     color: 'white',

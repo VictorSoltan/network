@@ -1,15 +1,18 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { StyleSheet, View, TouchableOpacity, TextInput, Image, TouchableWithoutFeedback, Keyboard } from 'react-native';
+import { StyleSheet, View, TouchableOpacity, TextInput, Text, Image, Dimensions, TouchableWithoutFeedback, Keyboard } from 'react-native';
 import MapContainer  from './MapContainer';
 // import PermissionsButton from './PermissionsButton'
 
 // import { GooglePlacesAutocomplete } from 'react-native-google-places-autocomplete';
 
 import Filter from '../assets/menu/all-inclusive.png'
+import Coin from '../assets/menu/coin.png'
 import Signature from '../assets/menu/signature.png'
 import Lamp from '../assets/menu/lamp.png'
 import User from '../assets/menu/user.png'
 import Earth from '../assets/menu/earth-globe.png'
+import Finish from '../assets/menu/finish.png'
+import Loupe from '../assets/menu/loupe.png'
 
 // import Wallet from '../assets/menu/digital-wallet.png'
 
@@ -45,21 +48,21 @@ import Ι22 from '../assets/signs/0022.webp'
 import Ι23 from '../assets/signs/0023.webp'
 import Ι24 from '../assets/signs/0024.webp'
 import Ι25 from '../assets/signs/0025.webp'
-import Ι26 from '../assets/signs/chat.webp'
-import Ι27 from '../assets/signs/coin.webp'
+import Ι26 from '../assets/signs/0026.webp'
+import Chat from '../assets/signs/chat.webp'
+import CoinIcon from '../assets/signs/coin.webp'
+import Rock from '../assets/signs/rock.webp'
 
 
-export default function Map({ navigation }){
-  
-  // const allIcons = [Ι0, Ι1, Ι2, Ι3, Ι4, Ι5, Ι6, Ι7, Ι8, 
-  //   Ι9, Ι10, Ι11, Ι12, Ι13, Ι14, Ι15, Ι16, Ι17, Ι18, Ι19, Ι20, Ι21, Ι22, Ι23, Ι24, Ι25]
+export default function Map({ route, navigation }){
 
   const icons = React.useRef({
     0: [Ι0, Ι1, Ι2, Ι3, Ι4, Ι5, Ι6, Ι7, Ι8],
     1: [Ι9, Ι10, Ι11, Ι12, Ι13],
     2: [Ι14, Ι15, Ι16, Ι17, Ι18, Ι19, Ι20, Ι21],
-    3: [Ι22, Ι23, Ι24, Ι25],
-    4: [Ι26, Ι27]
+    3: [Ι22, Ι23, Ι24, Ι25, Ι26],
+    4: [Chat, CoinIcon],
+    5: [Rock]
   })
   
   const [isKeyboardVisible, setKeyboardVisible] = useState(false);
@@ -87,9 +90,11 @@ export default function Map({ navigation }){
 
   let [toggleMenu, setToggleMenu] = useState(false),
     [textInput, setTextInput] = useState(false),
+    [searchInput, setSearchInput] = useState(false),
     [inputValue, setInputValue] = useState(''),
     [global, setGlobal] = useState(false),
     [coins, setCoins] = useState(false),
+    [path, setPath] = useState(false),
     me = useRef(null)
 
   function Global(){
@@ -101,6 +106,7 @@ export default function Map({ navigation }){
   function TextSelect(){
     setTextInput(!textInput)
     setGlobal(false)
+    setSearchInput(false)
   }
 
   function seeUserInfo(){
@@ -108,17 +114,31 @@ export default function Map({ navigation }){
     navigation.navigate('UserInfo', {nickname: me.current, icons: icons, onlySee: true})
   }
   
+  function togglePath(){
+    setPath(!path)
+  }
+
   function getCoins(){
-    setCoins(false)
+    setCoins(!coins)
+  }
+
+  function toggleSearch(){
+    setTextInput(false)
+    setSearchInput(!searchInput)
+  }
+
+  function searchUser(){
+    navigation.navigate('UserInfo', {nickname: inputValue, me: me, icons: icons, onlySee: false})
   }
 
   const menu = [
-    {icon: Filter, func: getCoins, value: null}, 
+    {icon: coins ? Coin : Filter, func: getCoins, value: null}, 
     {icon: Signature, func: TextSelect, value: textInput}, 
     {icon: Lamp, func: setToggleMenu, value: toggleMenu}, 
     {icon: Earth, func: Global, value: global}, 
     {icon: User, func: seeUserInfo, value: null}, 
-    // {icon: Angry, func: null, value: null}  
+    {icon: Finish, func: togglePath, value: null},
+    {icon: Loupe, func: toggleSearch, value: null}
   ]
 
   // const filtersIcons = [emoSigns, ateSigns, pathSigns, forbiddenSigns]
@@ -130,17 +150,22 @@ export default function Map({ navigation }){
   return (
     <TouchableWithoutFeedback onPress={Keyboard.dismiss} accessible={false}>
       <View style={styles.container}>
-        {textInput ? 
+        {(textInput||searchInput) && 
+        <View style={{flexDirection: 'row', alignItems: 'center', position: 'absolute', top: '4%', justifyContent: 'space-between',  alignSelf: 'center', width: '98%'}}>
           <TextInput 
-            style={styles.input}
-            placeholder={'Enter a text and set a mark'}
+            style={[styles.input, searchInput ? {width: '90%'} : null]}
+            placeholder={textInput ? 'Enter a text and set a mark' : 'Enter a username'}
             onChangeText={text => setInputValue(text)}
             value={inputValue}
             maxLength={80}
           />
-        :null}
+            {searchInput &&
+              <TouchableOpacity style={{backgroundColor: 'rgba(0,17,30, 0.8)', padding: '1.4%', zIndex: 99999}} onPress={() => searchUser()}>
+                <Text style={{color: '#a2f6f7'}}>Go</Text>
+              </TouchableOpacity>}
+        </View>}
         <View style={styles.mapContent}>
-          <View style={{position: 'absolute', top: '5%', width: '20%', height: '40%', zIndex: 1000}}>
+          <View style={{position: 'absolute', top: '5%', width: '20%', height: '60%', zIndex: 1000}}>
             {menu.map((item, index) => (
               <TouchableOpacity key={index} style={[styles.menuIcon, item.value ? {backgroundColor: 'rgba(0,17,30, 1)'} : null, ]} onPress={item.func ? () => item.func(!item.value) : null}>
                 <Image source={item.icon} style={{width: 24, height: 24, opacity: 0.8}} tintColor="#a2f6f7"/>
@@ -174,7 +199,7 @@ export default function Map({ navigation }){
                   </View>
                 </View>
               : null}  
-              <MapContainer  isKeyboardVisible={isKeyboardVisible} global={global} icons={icons} selectedFilter={selectedFilter} signsIcon={signsIcon} inputValue={inputValue} me={me} navigation={navigation} coins={coins} setCoins={setCoins}/>
+              <MapContainer style={styles.map} isKeyboardVisible={isKeyboardVisible} global={global} icons={icons} selectedFilter={selectedFilter} signsIcon={signsIcon} inputValue={inputValue} me={me} route={route} navigation={navigation} coins={coins} setCoins={setCoins} path={path} setPath={setPath} />
               {/* <PermissionsButton/> */}
             </>
         </View>
@@ -183,13 +208,13 @@ export default function Map({ navigation }){
   );
 }
 
+let windowHeight = Dimensions.get('window').height;
+
 const styles = StyleSheet.create({
   container: {
     flex: 1,
   },
   input: {
-    position: 'absolute',
-    top: '4%', 
     paddingLeft: '3%',
     borderRadius: 6,
     width: '100%', 
@@ -201,9 +226,8 @@ const styles = StyleSheet.create({
     position: 'absolute',
     bottom: 0,
     flexDirection: 'row', 
-    // marginTop: '8%', 
     width: '100%', 
-    height: '94%'
+    height: windowHeight
   },
   menuIcon: {
     margin: 8,
@@ -214,7 +238,7 @@ const styles = StyleSheet.create({
     paddingVertical: 11
   },
   map: {
-    width: '100%',
+    width: '100%'
   },
   filter: {
     alignSelf: 'flex-start',
@@ -227,7 +251,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     top: '7%',
     paddingTop: 0,
-    backgroundColor: 'rgba(0,0,0,0.6)',
+    backgroundColor: 'rgba(0,0,20,0.5)',
     width: '76%', 
     marginLeft: '20%',
     zIndex: 9999
